@@ -9,7 +9,7 @@ output: html_document
 library(dplyr)
 library(tidyverse)
 knitr::opts_chunk$set(echo = TRUE)
-load("../rda/edx.rda")
+load("../rda/edx.rda") 
 ```
 
 ## R Markdown
