@@ -29,6 +29,9 @@ head(edx,5)
 I will find a consice and yet accurate model. The project is aimed at an RMSE that is less than 0.865. The project is also aimed to produce an easy-to-follow and reproducible report. 
 
 # 2 Analysis
+Before modeling, I create two dataset: **edx** and **validation**. The **validation** is 10% of the full dataset, and is only used for final assessement of the model. It won't be used for anywhere else in the project. The **edx** data is going to be split into two subset, **train_set** and **test_set**.
+
+
 
 ## 2.1 The Simplest Model
 ### Performance
@@ -58,4 +61,5 @@ I will find a consice and yet accurate model. The project is aimed at an RMSE th
 
 # 5 Reference
 
-
+1 [R Markdown Cheat Sheet](https://rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf)
+2 [Data Science Courses from HarvardX](https://courses.edx.org/)
