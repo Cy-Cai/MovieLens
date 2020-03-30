@@ -15,3 +15,6 @@ data is used to saved original data in excel files
 rda is used to save RData format files
 
 figs is used to stores figures 
+
+The git repostory is "https://github.com/Cy-Cai/MovieLens.git"
+
