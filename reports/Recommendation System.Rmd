@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
 load("../rda/edx.rda")
+load("../rda/train_set.rda")
+load("../rda/test_set.rda")
 ```
 
 # 1 Introduction
@@ -32,11 +34,65 @@ I will find a consice and yet accurate model. The project is aimed at an RMSE th
 Before modeling, I create two dataset: **edx** and **validation**. The **validation** is 10% of the full dataset, and is only used for final assessement of the model. It won't be used for anywhere else in the project. The **edx** data is going to be split into two subset, **train_set** and **test_set**.
 
 ## 2.1 The Simplest Model
+The simplest model,  y_i=mu+e_i
 
+```{r}
+mu<-mean(train_set$rating)
+```
 
 ### Performance
-### Pros
-### Cons
+RMSE(mu,test_set$rating)
+
+### Pros and Cons
+
+The histogram shows that majority of the movies have residual more than 1
+
+the scatter plot shows that the residual convert to 1 as the rating count increase.In other words, the more rating for a movie doesn't increase the prediction accuracy with this model
+
+```{r}
+temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(movieId) %>% 
+  summarise(r=sqrt(mean(residul)),count=n()) 
+
+temp_p  %>% 
+  ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="Movie Count",title="Histogram Movie Count vs Residual")
+
+ temp_p%>% 
+  ggplot(aes(count,r))+geom_point() +labs(x="Rating Count by Movie",y="Residual",title="Scatter Plot Residual vs Rating Count ")
+
+```
+the histogram shows that majority of the users have residual more than 1
+
+the scatter plot shows that the residual convert to 1 as the rating count increase.In other words, the more rating from a user doesn't increase the prediction accuracy with this model
+
+```{r}
+temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(userId) %>% 
+  summarise(r=sqrt(mean(residul)),count=n())
+
+temp_p%>% 
+  ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")
+
+temp_p %>% 
+  ggplot(aes(count,r))+geom_point() +labs(x="Rating Count per User",y="Residual",title="Scatter Plot Residual vs Rating Count")
+
+```
+the bar chat shows that all the genres have residual greater than 1
+
+the scatter plot shows that the residual doesn't decrease as the rating count increase.In other words, the more rating from a user doesn't increase the prediction accuracy with this model
+
+```{r}
+temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% 
+separate_rows(genres, sep = "\\|") %>% 
+group_by(genres) %>% 
+  summarise(r=sqrt(mean(residul)),count=n()) 
+
+temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
+  labs(x="Genres",y="Residual",title="Bar Chart Residual vs Genres")+
+  geom_text(aes(label=round(r,3)),position=position_dodge(width=0.9), vjust=-0.25)
+
+temp_p%>%  ggplot(aes(count,r))+geom_point() +
+  labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
+```
+
 
 ## 2.2 Model 2
 ### Performance
