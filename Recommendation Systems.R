@@ -15,6 +15,9 @@ test_index <-  createDataPartition(y=edx$rating,times=1,p=0.2,list=F)
 train_set <- edx[-test_index,]
 test_set <- edx[test_index,]
 
+save(train_set,file="rda/train_set.rda")
+save(test_set,file="rda/test_set.rda")
+
 # test set should only include movies and users that are in the training set
 test_set <- test_set %>% semi_join(train_set,by="movieId") %>% 
   semi_join(train_set,by="userId")
