@@ -41,7 +41,10 @@ mu<-mean(train_set$rating)
 ```
 
 ### Performance
+
+```{r}
 RMSE(mu,test_set$rating)
+```
 
 ### Pros and Cons
 

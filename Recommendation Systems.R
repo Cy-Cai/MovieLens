@@ -2,26 +2,30 @@
 library(dplyr)
 library(tidyverse)
 
-edx%>% group_by(movieId) %>% summarise(count=n()) %>% 
-  ggplot(aes(count))+geom_histogram()+scale_x_continuous(trans='log10')
-
-edx%>% group_by(userId) %>% summarise(count=n()) %>% 
-  ggplot(aes(count))+geom_histogram()+scale_x_continuous(trans='log10')
+# edx%>% group_by(movieId) %>% summarise(count=n()) %>% 
+#   ggplot(aes(count))+geom_histogram()+scale_x_continuous(trans='log10')
+# 
+# edx%>% group_by(userId) %>% summarise(count=n()) %>% 
+#   ggplot(aes(count))+geom_histogram()+scale_x_continuous(trans='log10')
 
 # Creating training and testing set, 20% will assign as testing set, draw without replacement
 library(caret)
 # set.seed(755)
-# test_index <-  createDataPartition(y=edx$rating,times=1,p=0.2,list=F)
-# train_set <- edx[-test_index,]
-# test_set <- edx[test_index,]
-# 
-# save(train_set,file="rda/train_set.rda")
-# save(test_set,file="rda/test_set.rda")
-# 
-# # test set should only include movies and users that are in the training set
-# test_set <- test_set %>% semi_join(train_set,by="movieId") %>% 
-#   semi_join(train_set,by="userId")
+test_index <-  createDataPartition(y=edx$rating,times=1,p=0.2,list=F)
+train_set <- edx[-test_index,]
+temp <- edx[test_index,]
 
+save(train_set,file="rda/train_set.rda")
+save(test_set,file="rda/test_set.rda")
+
+# test set should only include movies and users that are in the training set
+test_set <- temp%>% semi_join(train_set,by="movieId") %>%
+  semi_join(train_set,by="userId")
+
+# Add rows removed from test set back into train set
+removed <- anti_join(temp, test_set)
+train_set <- rbind(train_set, removed)
+rm(temp)
 
 # define residual mean square error (RMSE), y_hat is the predicted rating outcome, y is the actual rating
 # y<-c(1,2,3,4)
@@ -196,7 +200,7 @@ user_profile <- train_set_with_genres_breakdown %>% group_by(userId,genres2) %>%
   summarise(count=n(),avg_rating=mean(rating),sd_rating=sd(rating),max_rating=max(rating),min_rating=min(rating)) %>% 
   mutate(Percent=count/sum(count))
 
-train_set_with_genres_breakdown %>% filter(userId==1,genres2=="Action") 
+# train_set_with_genres_breakdown %>% filter(userId==1,genres2=="Action") 
   
 top_genres_per_users <- user_profile%>% 
   group_by(userId) %>% 
@@ -209,33 +213,82 @@ user_profile$rank[is.na(user_profile$rank)]<-"Non-Top 1"
 user_profile <- user_profile %>% left_join(user_profile %>% mutate(sum_rating=count*avg_rating) %>% group_by(userId,rank) %>% 
   summarise(avg_rating_by_rank=sum(sum_rating)/sum(count)),by=c("userId","rank"))
 
-user_profile_mean_by_rank <- user_profile %>% distinct(userId,rank,avg_rating_by_rank)
+user_profile_mean_by_rank <- user_profile %>% 
+                            distinct(userId,rank,avg_rating_by_rank) %>% 
+                            # spread(rank,avg_rating_by_rank) %>% 
+                            data.frame()
 user_profile_rank_by_genres <- user_profile %>% select(userId,genres2,rank)
 
 # Model 3  y=mu+u_i+e_i   ; u_i=u_i0+u_i1,  u_i0 is non-top 1, u_i1 is top 1
 
+movie_avgs <- train_set %>% group_by(movieId) %>% 
+  summarise(m_i=mean(rating-mu))
+
+user_profile_avgs <- train_set_with_genres_breakdown %>% 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) %>% 
+  left_join(user_profile_mean_by_rank,by=c("userId","rank")) %>% 
+  group_by(userId,rank) %>% 
+  summarise(u_i=mean(rating-mu-m_i))
 
 
 predicted_rating <- test_set_with_genres_breakdown %>% 
-  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) %>% 
-  left_join(user_profile_mean_by_rank,by=c("userId","rank")) %>% select(-avg_rating_by_rank) 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) 
+
+
+predicted_rating$rank[is.na(predicted_rating$rank)]="Non-Top 1"
+ 
+
+predicted_rating <- predicted_rating %>% 
+  left_join(user_profile_avgs,by=c("userId","rank")) %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>% 
+  group_by(userId,movieId) %>% 
+  summarise(predicted_rating=mean(predicted_rating))
+
+temp<-test_set %>% left_join(predicted_rating,by=c("userId","movieId"))
+  
+
+  
+
+rmse_MovieAndUserPrfileAverage <- RMSE(temp$predicted_rating,temp$rating)
+
+#Store the results 
+
+rmse_results <- rbind(rmse_results,
+                      data.frame(method="Add Movie and User Profile Average",RMSE=rmse_MovieAndUserPrfileAverage))
+
+#Validation Set
+validation %>% head()
+validation_set_with_genres_breakdown <- validation  %>% left_join(genres_ref,by="genres") 
+# validation  %>% left_join(genres_ref,by="genres") %>% filter(is.na(genres2))
+# 
+# 
+# edx %>% filter(movieId==53752)
+# edx %>% filter(userId==826)
+# 
+# genres_ref %>% filter(genres=="Drama|Horror|Mystery|Sci-Fi|Thriller")
+
+predicted_rating <- validation_set_with_genres_breakdown %>% 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) 
+
 
 predicted_rating$rank[is.na(predicted_rating$rank)]="Non-Top 1"
 
-predicted_rating <- predicted_rating%>% 
-  left_join(user_profile_mean_by_rank,by=c("userId","rank")) %>% 
+
+predicted_rating <- predicted_rating %>% 
+  left_join(user_profile_avgs,by=c("userId","rank")) %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>% 
   group_by(userId,movieId) %>% 
-  summarise(predicted_rating=mean(avg_rating_by_rank)) %>% data.frame()
+  summarise(predicted_rating=mean(predicted_rating))
+
+temp<-validation_set_with_genres_breakdown%>% left_join(predicted_rating,by=c("userId","movieId"))
 
 
-rating <- test_set %>% left_join(predicted_rating,by=c("userId","movieId"))
 
 
-rmse_UserProfileAverage <- RMSE(rating$predicted_rating,rating$rating)
-
-rmse_results <- rbind(rmse_results,
-    data.frame(method="Add User Profile",RMSE=rmse_UserProfileAverage))
-
+rmse_validation <- RMSE(temp$predicted_rating,temp$rating)
 
 
 
