@@ -54,56 +54,56 @@ rmse_simplest_model <- RMSE(mu,test_set$rating)
 #Where it prediction is accurate
 #by movie
 # temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(movieId) %>%
-#   summarise(r=sqrt(mean(residul))) 
-# 
+#   summarise(r=sqrt(mean(residul)))
+#
 # temp_p%>%  ggplot(aes(r))+geom_histogram(bins=20)+labs(x="Residual",y="Movie Count",title="Histogram Movie Count vs Residual")+
 #   geom_vline(xintercept=1)
-# 
+#
 # mean(temp_p$r>1)
 
 # #the histogram shows that majority of the movies have residual more than 1
-# 
-# temp_p<-test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(movieId) %>% 
-#   summarise(r=sqrt(mean(residul)),count=n()) %>% 
+#
+# temp_p<-test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(movieId) %>%
+#   summarise(r=sqrt(mean(residul)),count=n()) %>%
 #   ggplot(aes(count,r))+geom_point()
 # temp_p+labs(x="Rating Count by Movie",y="Residual",title="Scatter Plot Residual vs Rating Count ")
-# 
+#
 # # the scatter plot shows that the residual convert to 1 as the rating count increase.
 # # In other words, the more rating for a movie doesn't increase the prediction accuracy with this model
-# 
+#
 # #by user
-# temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(userId) %>% 
-#   summarise(r=sqrt(mean(residul))) %>% 
+# temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(userId) %>%
+#   summarise(r=sqrt(mean(residul))) %>%
 #   ggplot(aes(r))+geom_histogram()
 # temp_p+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")
-# 
+#
 # #the histogram shows that majority of the users have residual more than 1
-# 
-# temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(userId) %>% 
-#   summarise(r=sqrt(mean(residul)),count=n()) %>% 
+#
+# temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>% group_by(userId) %>%
+#   summarise(r=sqrt(mean(residul)),count=n()) %>%
 #   ggplot(aes(count,r))+geom_point()
 # temp_p+labs(x="Rating Count per User",y="Residual",title="Scatter Plot Residual vs Rating Count")
-# 
+#
 # # the scatter plot shows that the residual convert to 1 as the rating count increase.
 # # In other words, the more rating from a user doesn't increase the prediction accuracy with this model
-# 
-# 
+#
+#
 # #by genres
 # temp_p <- test_set %>% mutate(residul=(rating-mu)^2) %>%
 # separate_rows(genres, sep = "\\|") %>%
 # group_by(genres) %>%
 #   summarise(r=sqrt(mean(residul)),count=n())
-# 
+#
 # temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
 #   labs(x="Genres",y="Residual",title="Bar Chart Residual vs Genres")+
 #   geom_text(aes(label=round(r,3)),size=3,check_overlap = TRUE,position=position_dodge(width=0.9), vjust=-0.25)+theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 # # the bar chat shows that all the genres have residual greater than 1
-# 
+#
 # temp_p%>%  ggplot(aes(count,r))+geom_point() +
 #   labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
-# 
-# 
+#
+#
 # # the scatter plot shows that the residual doesn't decrease as the rating count increase
 # # In other words, the more rating for a genres doesn't increase the prediction accuracy with this model
 # 
@@ -133,61 +133,61 @@ rmse_results <- rbind(rmse_results,
 
 
 # #by movie
-# temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
-#   left_join(user_avgs,by="userId") %>%
-#   mutate(predicted_rating=mu+m_i+u_i) %>%
-#   mutate(residul=(rating-predicted_rating)^2) %>%
-#   group_by(movieId) %>%
-#   summarise(r=sqrt(mean(residul)),count=n())
-# 
-# temp_p%>%
-#   ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="Movie Count",title="Histogram Movie Count vs Residual")
-# 
-# #the histogram shows that majority of the movies have residual less than 1
-# 
-# temp_p %>%  ggplot(aes(count,r))+geom_point()+
-#   labs(x="Rating Count by Movie",y="Residual",title="Scatter Plot Residual vs Rating Count ")
-# 
+temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
+  left_join(user_avgs,by="userId") %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>%
+  mutate(residul=(rating-predicted_rating)^2) %>%
+  group_by(movieId) %>%
+  summarise(r=sqrt(mean(residul)),count=n())
+
+temp_p%>%
+  ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="Movie Count",title="Histogram Movie Count vs Residual")
+
+#the histogram shows that majority of the movies have residual less than 1
+
+temp_p %>%  ggplot(aes(count,r))+geom_point()+
+  labs(x="Rating Count by Movie",y="Residual",title="Scatter Plot Residual vs Rating Count ")
+
 # # the scatter plot shows that the residual reduce quickly as the rating count increase to 500.
 # # the residual reduece slowly after the count is more than 500
 # 
 # #by user
-# temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
-#   left_join(user_avgs,by="userId") %>%
-#   mutate(predicted_rating=mu+m_i+u_i) %>%
-#   mutate(residul=(rating-predicted_rating)^2) %>%
-#   group_by(userId) %>%
-#   summarise(r=sqrt(mean(residul)),count=n())
-# 
-# temp_p%>%
-#   ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")
-# 
+temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
+  left_join(user_avgs,by="userId") %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>%
+  mutate(residul=(rating-predicted_rating)^2) %>%
+  group_by(userId) %>%
+  summarise(r=sqrt(mean(residul)),count=n())
+
+temp_p%>%
+  ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")
+
 # #the histogram shows that majority of the users have residual less than 1
-# 
-# temp_p %>%  ggplot(aes(count,r))+geom_point()+
-#   labs(x="Rating Count by User",y="Residual",title="Scatter Plot Residual vs Rating Count ")
-# 
-# # the scatter plot shows that the residual reduce quickly as the rating count increase to 125.
-# # the residual reduece slowly after the count is more than 125
-# 
-# temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
-#   left_join(user_avgs,by="userId") %>%
-#   mutate(predicted_rating=mu+m_i+u_i) %>%
-#   mutate(residul=(rating-predicted_rating)^2) %>%
-#   separate_rows(genres, sep = "\\|") %>%
-#   group_by(genres) %>%
-#   summarise(r=sqrt(mean(residul)),count=n())
-# 
-# temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
-#   labs(x="Genres",y="Residual",title="Bar Chart Residual vs Genres")+
-#   geom_text(aes(label=round(r,3)),position=position_dodge(width=0.9), vjust=-0.25)
-# 
+
+temp_p %>%  ggplot(aes(count,r))+geom_point()+
+  labs(x="Rating Count by User",y="Residual",title="Scatter Plot Residual vs Rating Count ")
+
+# the scatter plot shows that the residual reduce quickly as the rating count increase to 125.
+# the residual reduece slowly after the count is more than 125
+
+temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
+  left_join(user_avgs,by="userId") %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>%
+  mutate(residul=(rating-predicted_rating)^2) %>%
+  separate_rows(genres, sep = "\\|") %>%
+  group_by(genres) %>%
+  summarise(r=sqrt(mean(residul)),count=n())
+
+temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
+  labs(x="Genres",y="Residual",title="Bar Chart Residual vs Genres")+
+  geom_text(aes(label=round(r,3)),position=position_dodge(width=0.9), vjust=-0.25)
+
 # # the bar chat shows that all the genres have residual greater than 1
 # 
-# temp_p%>%  ggplot(aes(count,r))+geom_point() +
-#   labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
-# 
-# 
+temp_p%>%  ggplot(aes(count,r))+geom_point() +
+  labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
+
+
 # # the scatter plot shows that the residual doesn't decrease as the rating count increase
 # # In other words, the more rating for a genres doesn't increase the prediction accuracy with this model
 # 
@@ -266,8 +266,7 @@ rmse_results <- rbind(rmse_results,
 
 #Polts
 
-# # the scatter plot shows that the residual reduce quickly as the rating count increase to 125.
-# # the residual reduece slowly after the count is more than 125
+
 #
 temp_p <- temp %>% left_join(movie_avgs,by="movieId") %>%
   mutate(residul=(rating-predicted_rating)^2) %>%
@@ -283,6 +282,10 @@ temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
 #
 temp_p%>%  ggplot(aes(count,r))+geom_point() +
   labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
+
+m<-mean(train_set %>% filter(genres=="(no genres listed)") %>% .$rating)
+train_set %>% filter(genres=="(no genres listed)") %>% mutate(residuals=(rating-m)^2) %>% 
+group_by(genres) %>% summarize(sqrt(sum(residuals)))  
 
 #
 # # the scatter plot shows that the residual doesn't decrease as the rating count increase

@@ -130,8 +130,7 @@ rmse_results <- rbind(rmse_results,
 
 
 ### Performance
-The RMSE increase from to . The accuracy improves siginificantly. But it does
-not reach my goal yet. 
+The RMSE increase from 1.0606 to 0.8660. The accuracy improves siginificantly. But it does not reach my goal yet. 
 
 ```{r,echo=FALSE}
 rmse_results
@@ -201,9 +200,9 @@ temp_p%>%  ggplot(aes(count,r))+geom_point() +
 
 
 ## 2.3 Model 3
-I call the third model *User Profile Model*. I will look at the user's historial rating record and identify the most rated genres. The genre will be marked as "Top 1", while any other genres will be marked as "Non-Top 1" for this user.
+I call the third model *User Profile Model*. I will look at the user's historial rating record and identify the most rated genre. The genre will be marked as "Top 1", while any other genres will be marked as "Non-Top 1" for this user.
 
-The underlying reasoning is: the user who like watching movies of certain genre gives a above-average rating to them. 
+The underlying reasoning is: the user who like watching movies of certain genre gives an above-average rating to them. 
 
 The model can be expressed as, y_ij=mu+m_i+u_j(genres)+e_ij, where u_j is a function of genres. 
 
@@ -280,7 +279,7 @@ rmse_results
 ```
 ### Pros
 
-The RMSE by genres decreases significantly. There are only two genres with RMSE>0.9. 
+The RMSE by genres drops below 0.9. There are only two genres with RMSE>0.9. 
 
 The scatter plot shows that the accuracy is stable and mostly independent to the rating counts by genre. 
 
@@ -299,6 +298,7 @@ temp_p%>%  ggplot(aes(count,r))+geom_point() +
   labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
 
 ```
+
 ### Cons
 There is noticeable outlier. The RMSE is 1.703 for the movie with no genres listed. Here are the records for those:
 
@@ -306,7 +306,7 @@ There is noticeable outlier. The RMSE is 1.703 for the movie with no genres list
 train_set %>% filter(genres=="(no genres listed)") 
 ```
 
-This model doesn't perform well with the movies without genres. 
+This model doesn't perform well with the movies if there is no genre listed. 
 
 # 3 Results
 
@@ -350,11 +350,26 @@ rmse_validation
 
 ## Model Summary
 
+The simplest model consider no factor and is used as a baseline model. It has an RMSE of 1.06. 
+
+The second model takes the movie and user rating averages into consideration. It greatly reduce the RMSE. However, it assumes the user looks at each genres without preference. The assumption is against the common sense. And the bar chart shows that the RMSE by genres is high. 
+
+The third model improves upon model 2 by adding the user profile. The user profile analyze the historial ratings of each user. It looks at the average rating by genres for the user, and then find out which genres is most rated by the user. The model significantly improves the RMSE by recoginizing the user's preferable genres. 
+
 # 4 Conclusion
 
 ## Summary of the report
+The report starts from the simpleset model and develop by adding factors to the previous model. And I use the RMSE histogram, scatter polt and bar charts to as a guidance of what factors should be added to the model. 
+
+I like the User Profile Model, because it takes into users' preference into consideration. 
+
 ## Limitations
+The User Profile Model performs poorly with movies that have no genres listed. Fortunately, there are only very few moveis like that (one movie in our dataset). 
+
+It also does not consider difference beween movies with single genres and multiple genres.
+
 ## Future Works
+In order to improve the model, I will group the movies by genres number (how many genres are listed for the movie). Then, I will observe whether the rating is impatcted by this factor. If yes, I will build a model to include the Movie Profile. 
 
 # 5 Reference
 
