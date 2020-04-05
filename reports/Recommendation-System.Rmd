@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyverse)
 load("../rda/edx.rda")
-
 load("../rda/train_set.rda")
 load("../rda/test_set.rda")
 ```
