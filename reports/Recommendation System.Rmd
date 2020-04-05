@@ -82,6 +82,7 @@ mean(temp_p$r>1)
   ggplot(aes(count,r))+geom_point() +labs(x="Rating Count by Movie",y="Residual",title="Scatter Plot Residual vs Rating Count ")
 
 ```
+
 The histogram shows that majority of the users have residual more than 1
 
 The scatter plot shows that the residual converts to 1 as the rating count increase.In other words, the more ratings from a user don't increase the prediction accuracy with this model. 
@@ -159,7 +160,7 @@ mean(temp_p$r>1)
 
 The histogram shows that majority of the users have residual less than 1.Thus, adding the user factor improves the result.
 
-```{r}
+```{r,echo=FALSE}
 #by user
 temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
   left_join(user_avgs,by="userId") %>%
@@ -169,7 +170,7 @@ temp_p <- test_set %>% left_join(movie_avgs,by="movieId") %>%
   summarise(r=sqrt(mean(residul)),count=n())
 
 temp_p%>%
-  ggplot(aes(r))+geom_histogram()+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")+geom_vline(xintercept=1)
+  ggplot(aes(r))+geom_histogram(bins=20)+labs(x="Residual",y="User Count",title="Histogram User Count vs Residual")+geom_vline(xintercept=1)
 
 mean(temp_p$r>1)
 ```
@@ -201,17 +202,152 @@ temp_p%>%  ggplot(aes(count,r))+geom_point() +
 
 
 ## 2.3 Model 3
-### Performance
-### Pros
-### Cons
+I call the third model *User Profile Model*. I will look at the user's historial rating record and identify the most rated genres. The genre will be marked as "Top 1", while any other genres will be marked as "Non-Top 1" for this user.
 
+The underlying reasoning is: the user who like watching movies of certain genre gives a above-average rating to them. 
+
+The model can be expressed as, y_ij=mu+m_i+u_j(genres)+e_ij, where u_j is a function of genres. 
+
+```{r user profile, echo =FALSE}
+genres_ref <- train_set %>% distinct(genres) %>% 
+  mutate(genres2=genres) %>% 
+  separate_rows(genres2, sep = "\\|") 
+
+train_set_with_genres_breakdown <- train_set %>% left_join(genres_ref,by="genres") 
+test_set_with_genres_breakdown <- test_set %>% left_join(genres_ref,by="genres") 
+
+user_profile <- train_set_with_genres_breakdown %>% group_by(userId,genres2) %>% 
+  summarise(count=n(),avg_rating=mean(rating),sd_rating=sd(rating),max_rating=max(rating),min_rating=min(rating)) %>% 
+  mutate(Percent=count/sum(count))
+
+top_genres_per_users <- user_profile%>% 
+  group_by(userId) %>% 
+  summarise(count=max(count)) %>% 
+  mutate(rank="Top 1")
+  
+user_profile <- user_profile %>% left_join(top_genres_per_users,by=c("userId","count"))
+user_profile$rank[is.na(user_profile$rank)]<-"Non-Top 1"
+
+user_profile <- user_profile %>% 
+              left_join(user_profile %>% 
+              mutate(sum_rating=count*avg_rating) %>% 
+              group_by(userId,rank) %>% 
+              summarise(avg_rating_by_rank=sum(sum_rating)/sum(count)),by=c("userId","rank"))
+
+user_profile_mean_by_rank <- user_profile %>% 
+                            distinct(userId,rank,avg_rating_by_rank) %>% 
+                            data.frame()
+user_profile_rank_by_genres <- user_profile %>% select(userId,genres2,rank)
+
+```
+
+```{r}
+movie_avgs <- train_set %>% group_by(movieId) %>% 
+  summarise(m_i=mean(rating-mu))
+
+user_profile_avgs <- train_set_with_genres_breakdown %>% 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) %>% 
+  left_join(user_profile_mean_by_rank,by=c("userId","rank")) %>% 
+  group_by(userId,rank) %>% 
+  summarise(u_i=mean(rating-mu-m_i))
+
+```
+
+```{r rmse calculation, echo=FALSE }
+predicted_rating <- test_set_with_genres_breakdown %>% 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) 
+
+
+predicted_rating$rank[is.na(predicted_rating$rank)]="Non-Top 1"
+ 
+
+predicted_rating <- predicted_rating %>% 
+  left_join(user_profile_avgs,by=c("userId","rank")) %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>% 
+  group_by(userId,movieId) %>% 
+  summarise(predicted_rating=mean(predicted_rating))
+
+temp<-test_set %>% left_join(predicted_rating,by=c("userId","movieId"))
+rmse_MovieAndUserPrfileAverage <- RMSE(temp$predicted_rating,temp$rating)
+rmse_results <- rbind(rmse_results,
+                      data.frame(method="Add Movie and User Profile Average",RMSE=rmse_MovieAndUserPrfileAverage))
+```
+
+### Performance
+```{r}
+rmse_results
+```
+### Pros
+
+The RMSE by genres decreases significantly. There are only two genres with RMSE>0.9. 
+
+The scatter plot shows that the accuracy is stable and mostly independent to the rating counts by genre. 
+
+```{r bar chat, echo=FALSE}
+temp_p <- temp %>% left_join(movie_avgs,by="movieId") %>%
+  mutate(residul=(rating-predicted_rating)^2) %>%
+  separate_rows(genres, sep = "\\|") %>%
+  group_by(genres) %>%
+  summarise(r=sqrt(mean(residul)),count=n())
+
+temp_p%>% ggplot(aes(genres,r))+geom_bar(stat = "identity") +
+  labs(x="Genres",y="Residual",title="Bar Chart Residual vs Genres")+
+  geom_text(aes(label=round(r,3)),size=3,check_overlap=TRUE,position=position_dodge(width=0.9), vjust=-0.25)+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+temp_p%>%  ggplot(aes(count,r))+geom_point() +
+  labs(x="Rating Count per Genres",y="Residual",title="Scatter Plot Residual vs Rating Count")
+
+```
+### Cons
+There is noticeable outlier. The RMSE is 1.703 for the movie with no genres listed. Here are the records for those:
+
+```{r}
+train_set %>% filter(genres=="(no genres listed)") 
+```
+
+This model doesn't perform well with the movies without genres. 
 
 # 3 Results
 
 ```{r load the validation dataset,echo=FALSE}
 load("../rda/validation.rda")
+
+#Validation Set
+
+validation_set_with_genres_breakdown <- validation  %>% left_join(genres_ref,by="genres") 
+# validation  %>% left_join(genres_ref,by="genres") %>% filter(is.na(genres2))
+# 
+# 
+# edx %>% filter(movieId==53752)
+# edx %>% filter(userId==826)
+# 
+# genres_ref %>% filter(genres=="Drama|Horror|Mystery|Sci-Fi|Thriller")
+
+predicted_rating <- validation_set_with_genres_breakdown %>% 
+  left_join(movie_avgs,by="movieId") %>% 
+  left_join(user_profile_rank_by_genres,by=c("userId","genres2")) 
+
+
+predicted_rating$rank[is.na(predicted_rating$rank)]="Non-Top 1"
+
+predicted_rating <- predicted_rating %>% 
+  left_join(user_profile_avgs,by=c("userId","rank")) %>%
+  mutate(predicted_rating=mu+m_i+u_i) %>% 
+  group_by(userId,movieId) %>% 
+  summarise(predicted_rating=mean(predicted_rating))
+
+temp<-validation_set_with_genres_breakdown%>%
+  left_join(predicted_rating,by=c("userId","movieId"))
+
+rmse_validation <- RMSE(temp$predicted_rating,temp$rating)
 ```
 
+
+```{r}
+rmse_validation
+```
 
 ## Model Summary
 
