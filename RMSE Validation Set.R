@@ -1,5 +1,5 @@
 #Validation Set
-validation %>% head()
+
 validation_set_with_genres_breakdown <- validation  %>% left_join(genres_ref,by="genres") 
 # validation  %>% left_join(genres_ref,by="genres") %>% filter(is.na(genres2))
 # 
